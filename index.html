@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DEX Curat | Dicționarul Limbii Române Vii</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -29,23 +30,9 @@
             box-sizing: border-box;
         }
         .key-icon { font-size: 3rem; margin-bottom: 10px; }
-        h1 {
-            color: #1e3a8a;
-            font-size: 2.5rem;
-            margin: 0 0 10px 0;
-        }
-        .subtitle {
-            color: #d97706;
-            font-weight: bold;
-            font-size: 1.1rem;
-            margin-bottom: 30px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .search-box {
-            position: relative;
-            margin-bottom: 30px;
-        }
+        h1 { color: #1e3a8a; font-size: 2.5rem; margin: 0 0 10px 0; }
+        .subtitle { color: #d97706; font-weight: bold; font-size: 1.1rem; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 1px; }
+        .search-box { position: relative; margin-bottom: 30px; }
         input {
             width: 100%;
             padding: 15px 20px;
@@ -73,39 +60,19 @@
             border-radius: 8px;
             text-align: left;
             margin-bottom: 15px;
+            animation: fadeIn 0.3s ease-in;
         }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .result-card h3 { color: #1e3a8a; margin: 0 0 10px 0; font-size: 1.2rem; }
         .result-card p { color: #475569; margin: 0 0 15px 0; }
-        .tag {
-            display: inline-block;
-            background: #dbeafe;
-            color: #1e40af;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            margin-right: 5px;
-            margin-bottom: 5px;
-        }
-        .no-result {
-            background: #f1f5f9;
-            padding: 20px;
-            border-radius: 8px;
-            color: #64748b;
-        }
+        .tag { display: inline-block; background: #dbeafe; color: #1e40af; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; margin-right: 5px; margin-bottom: 5px; }
+        .no-result { background: #f1f5f9; padding: 20px; border-radius: 8px; color: #64748b; }
         .footer { margin-top: 30px; font-size: 0.9rem; color: #94a3b8; }
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
-            background: #1e3a8a;
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: bold;
-            margin-top: 10px;
-        }
+        .btn { display: inline-block; padding: 10px 20px; background: #1e3a8a; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 10px; }
         .links { margin-top: 20px; }
         .links a { color: #64748b; text-decoration: none; margin: 0 10px; }
         .links a:hover { color: #1e3a8a; }
+        .loading { color: #1e3a8a; font-weight: bold; display: none; }
     </style>
 </head>
 <body>
@@ -116,12 +83,13 @@
         <div class="subtitle">Dicționarul Limbii Române Vii & Muzeul Copilăriei</div>
         
         <div class="search-box">
-            <input type="text" id="searchInput" placeholder="Caută o expresie (ex: cheia, lingura, stai să vezi...)" onkeyup="searchDictionary()">
+            <input type="text" id="searchInput" placeholder="Caută un cuvânt sau o expresie..." onkeyup="handleSearch(event)">
             <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
         </div>
 
+        <p class="loading" id="loadingMsg">Se caută în dicționar...</p>
         <div id="resultsArea">
-            <p style="color: #94a3b8;">Scrie ceva în bara de căutare pentru a descoperi definiții din copilărie.</p>
+            <p style="color: #94a3b8;">Scrie cel puțin 2 caractere pentru a începe căutarea.</p>
         </div>
 
         <div class="footer">
@@ -136,41 +104,72 @@
     </div>
 
     <script>
-        const dictionary = [
-            { term: "Generația cu cheia la gât", definition: "Substantiv propriu. Referire la copiii anilor '80-'90 care se întorceau de la școală singuri, având cheia de la apartament legată cu o sfoară de gât, sub tricou. Simbol al independenței timpurii.", tags: ["copilărie", "cheie", "nostalgie"] },
-            { term: "Stai să vezi ce primești când ajungi acasă", definition: "Locuțiune verbală. Avertisment parental emis de obicei în spații publice. Deși promisiunea nu era onorată niciodată la intensitatea amenințată, efectul psihologic de frică instantanee era garantat.", tags: ["părinți", "amenințare", "copilărie"] },
-            { term: "Zeița (salată de roșii cu brânză)", definition: "Substantiv feminin, registru familiar culinar. Preparat culinar suprem, compus exclusiv din roșii tăiate cubulețe, brânză de vaci sau telemea, sare și, opțional, o linguriță de ulei.", tags: ["mâncare", "copilărie", "mama"] }
-        ];
+        // ⚠️ ÎNLOCUIEȘTE ACESTE VALORI CU CELE DIN SUPABASE (Settings -> API)
+        const SUPABASE_URL = 'https://xxxxxxxxxxxxxxxxxxxx.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
 
-        function searchDictionary() {
-            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+        // Inițializare client Supabase
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let searchTimeout;
+
+        async function handleSearch(event) {
+            if (event.key === 'Enter') {
+                performSearch();
+            } else {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(performSearch, 500);
+            }
+        }
+
+        async function performSearch() {
+            const query = document.getElementById('searchInput').value.trim();
             const resultsArea = document.getElementById('resultsArea');
+            const loadingMsg = document.getElementById('loadingMsg');
 
-            if (query === '') {
-                resultsArea.innerHTML = '<p style="color: #94a3b8;">Scrie ceva în bara de căutare pentru a descoperi definiții din copilărie.</p>';
+            if (query.length < 2) {
+                resultsArea.innerHTML = '<p style="color: #94a3b8;">Scrie cel puțin 2 caractere pentru a începe căutarea.</p>';
+                loadingMsg.style.display = 'none';
                 return;
             }
 
-            const results = dictionary.filter(item => 
-                item.term.toLowerCase().includes(query) || 
-                item.definition.toLowerCase().includes(query) ||
-                item.tags.some(tag => tag.includes(query))
-            );
+            loadingMsg.style.display = 'block';
+            resultsArea.innerHTML = '';
 
-            if (results.length === 0) {
-                resultsArea.innerHTML = `
-                    <div class="no-result">
-                        <p style="margin:0;"><strong>Nu am găsit expresia „${query}”.</strong></p>
-                        <p style="margin:10px 0 0 0; font-size:0.9rem;">Dar o putem adăuga! Scrie-ne la contact@dex-curat.online</p>
-                    </div>`;
-            } else {
-                resultsArea.innerHTML = results.map(item => `
-                    <div class="result-card">
-                        <h3>${item.term}</h3>
-                        <p>${item.definition}</p>
-                        <div>${item.tags.map(tag => `<span class="tag">#${tag}</span>`).join('')}</div>
-                    </div>
-                `).join('');
+            try {
+                const { data, error } = await supabase
+                    .from('cuvinte')
+                    .select('termen, definitie, taguri')
+                    .or(`termen.ilike.%${query}%,definitie.ilike.%${query}%,taguri.ilike.%${query}%`)
+                    .limit(15);
+
+                loadingMsg.style.display = 'none';
+
+                if (error) {
+                    console.error('Eroare Supabase:', error);
+                    resultsArea.innerHTML = '<div class="no-result"><p>A apărut o eroare la conectarea cu baza de date.</p></div>';
+                    return;
+                }
+
+                if (!data || data.length === 0) {
+                    resultsArea.innerHTML = `
+                        <div class="no-result">
+                            <p style="margin:0;"><strong>Nu am găsit „${query}”.</strong></p>
+                            <p style="margin:10px 0 0 0; font-size:0.9rem;">Dar o putem adăuga! Scrie-ne la contact@dex-curat.online</p>
+                        </div>`;
+                } else {
+                    resultsArea.innerHTML = data.map(item => `
+                        <div class="result-card">
+                            <h3>${item.termen}</h3>
+                            <p>${item.definitie}</p>
+                            <div>${item.taguri ? item.taguri.split(',').map(tag => `<span class="tag">#${tag.trim()}</span>`).join('') : ''}</div>
+                        </div>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error('Eroare neașteptată:', err);
+                loadingMsg.style.display = 'none';
+                resultsArea.innerHTML = '<div class="no-result"><p>A apărut o eroare neașteptată.</p></div>';
             }
         }
     </script>
