@@ -23,7 +23,6 @@
         .result-card p { color: #475569; margin: 0; line-height: 1.6; }
         .tag { display: inline-block; background: #dbeafe; color: #1e40af; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; margin-right: 5px; margin-top: 10px; font-weight: 600; }
         .no-result { background: #f1f5f9; padding: 30px; border-radius: 12px; text-align: center; color: #64748b; }
-        .error-msg { background: #fee2e2; padding: 20px; border-radius: 12px; text-align: center; color: #991b1b; border: 1px solid #f87171; }
         .footer { margin-top: 40px; font-size: 0.9rem; color: #94a3b8; text-align: center; }
         .btn { display: inline-block; padding: 12px 25px; background: #1e3a8a; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 15px; }
         .links { margin-top: 20px; }
@@ -38,7 +37,7 @@
         <div class="subtitle">Dicționarul Limbii Române Vii & Muzeul Copilăriei</div>
         
         <div class="search-box">
-            <input type="text" id="searchInput" placeholder="Scrie un cuvânt (ex: ABACĂ, NUC, APĂ)...">
+            <input type="text" id="searchInput" placeholder="Scrie un cuvânt (ex: rețea, ABACĂ, NUC)...">
             <button id="searchBtn">Caută</button>
         </div>
 
@@ -58,12 +57,12 @@
     </div>
 
     <script>
-        // Configurare Supabase
+        // Configurare Supabase (Cheile tale sunt deja aici)
         const SUPABASE_URL = 'https://jfvdiwsdygvmsonivhpx.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmdmRpd3NkeWd2bXNvbml2aHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxNzcxNDksImV4cCI6MjEwNzc1MzE0OX0.toJdOrqDayf46J1w0Bfzaf5KaxsNj8mQqksMscIhsFQ';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmdmRpd3NkeWd2bXNvbml2aHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxNzcxNDksImV4cCI6MjEwNzc1MzE0OX0.toJdOrqDayf46J1w0Bfzaf5KaxsNj8mQqksMscIhsFQ';
 
         // Inițializare client oficial Supabase
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
@@ -77,10 +76,10 @@
                 return;
             }
 
-            resultsArea.innerHTML = '<p style="color: #1e3a8a; text-align: center; font-weight: bold;">🔍 Căutăm în dicționar...</p>';
+            resultsArea.innerHTML = '<p style="color: #1e3a8a; text-align: center; font-weight: bold;"> Căutăm în cele 27.000 de definiții...</p>';
 
             try {
-                // Căutare folosind biblioteca oficială (mult mai sigură)
+                // Căutare oficială Supabase
                 const { data, error } = await supabase
                     .from('cuvinte')
                     .select('termen, definitie, taguri')
@@ -88,14 +87,16 @@
                     .limit(10);
 
                 if (error) {
-                    throw error;
+                    console.error('Eroare Supabase:', error);
+                    resultsArea.innerHTML = `<div class="no-result"><p><strong>A apărut o eroare:</strong> ${error.message}</p></div>`;
+                    return;
                 }
 
                 if (data.length === 0) {
                     resultsArea.innerHTML = `
                         <div class="no-result">
                             <p style="margin:0; font-size: 1.1rem;"><strong>Nu am găsit "${query}"</strong></p>
-                            <p style="margin: 10px 0 0 0;">Încearcă să scrii cuvântul cu diacritice (ex: "apă" în loc de "apa").</p>
+                            <p style="margin: 10px 0 0 0;">Încearcă să scrii cuvântul cu diacritice (ex: "rețea" în loc de "retea").</p>
                         </div>
                     `;
                 } else {
@@ -108,15 +109,9 @@
                             </div>
                         `).join('');
                 }
-            } catch (error) {
-                console.error('Eroare Supabase:', error);
-                resultsArea.innerHTML = `
-                    <div class="error-msg">
-                        <p style="margin:0; font-size: 1.1rem;"><strong>A apărut o eroare de conexiune</strong></p>
-                        <p style="margin: 10px 0 0 0; font-size: 0.9rem;">${error.message}</p>
-                        <p style="margin: 10px 0 0 0; font-size: 0.8rem;">Dacă folosești Brave, dezactivează "Shields" pentru acest site.</p>
-                    </div>
-                `;
+            } catch (err) {
+                console.error('Eroare neașteptată:', err);
+                resultsArea.innerHTML = '<div class="no-result"><p>A apărut o eroare de conexiune.</p></div>';
             }
         }
 
