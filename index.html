@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DEX Curat | Dicționarul Limbii Române Vii</title>
-    <!-- Biblioteca Oficială Supabase -->
+    
+    <!-- 1. ÎNCĂRCAREA BIBLIOTECII SUPABASE (O SINGURĂ DATĂ) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f4f8; color: #1e293b; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         .container { max-width: 700px; width: 100%; background: white; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); padding: 40px 20px; box-sizing: border-box; margin-top: 20px; }
@@ -23,6 +25,7 @@
         .result-card p { color: #475569; margin: 0; line-height: 1.6; }
         .tag { display: inline-block; background: #dbeafe; color: #1e40af; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; margin-right: 5px; margin-top: 10px; font-weight: 600; }
         .no-result { background: #f1f5f9; padding: 30px; border-radius: 12px; text-align: center; color: #64748b; }
+        .error-msg { background: #fee2e2; padding: 20px; border-radius: 12px; text-align: center; color: #991b1b; border: 1px solid #f87171; }
         .footer { margin-top: 40px; font-size: 0.9rem; color: #94a3b8; text-align: center; }
         .btn { display: inline-block; padding: 12px 25px; background: #1e3a8a; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 15px; }
         .links { margin-top: 20px; }
@@ -32,12 +35,12 @@
 <body>
 
     <div class="container">
-        <div class="key-icon">️</div>
+        <div class="key-icon">🗝️</div>
         <h1>DEX Curat</h1>
         <div class="subtitle">Dicționarul Limbii Române Vii & Muzeul Copilăriei</div>
         
         <div class="search-box">
-            <input type="text" id="searchInput" placeholder="Scrie un cuvânt (ex: rețea, ABACĂ, NUC)...">
+            <input type="text" id="searchInput" placeholder="Scrie un cuvânt (ex: ABACĂ, MĂTURĂ, NUC)...">
             <button id="searchBtn">Caută</button>
         </div>
 
@@ -57,12 +60,12 @@
     </div>
 
     <script>
-        // Configurare Supabase (Cheile tale sunt deja aici)
+        // 2. CONFIGURARE (Cheile tale sunt deja introduse corect aici)
         const SUPABASE_URL = 'https://jfvdiwsdygvmsonivhpx.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmdmRpd3NkeWd2bXNvbml2aHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxNzcxNDksImV4cCI6MjEwNzc1MzE0OX0.toJdOrqDayf46J1w0Bfzaf5KaxsNj8mQqksMscIhsFQ';
 
-        // Inițializare client oficial Supabase
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // 3. INITIALIZARE CLIENT (Folosim 'supabaseClient' pentru a evita conflictele de nume)
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
@@ -76,27 +79,27 @@
                 return;
             }
 
-            resultsArea.innerHTML = '<p style="color: #1e3a8a; text-align: center; font-weight: bold;"> Căutăm în cele 27.000 de definiții...</p>';
+            resultsArea.innerHTML = '<p style="color: #1e3a8a; text-align: center; font-weight: bold;">🔍 Căutăm în cele 27.000 de definiții...</p>';
 
             try {
-                // Căutare oficială Supabase
-                const { data, error } = await supabase
+                // 4. INTEROGARE BAZA DE DATE
+                const { data, error } = await supabaseClient
                     .from('cuvinte')
                     .select('termen, definitie, taguri')
-                    .ilike('termen', `%${query}%`)
-                    .limit(10);
+                    .ilike('termen', `%${query}%`) // Căutare case-insensitive
+                    .limit(15);
 
                 if (error) {
                     console.error('Eroare Supabase:', error);
-                    resultsArea.innerHTML = `<div class="no-result"><p><strong>A apărut o eroare:</strong> ${error.message}</p></div>`;
+                    resultsArea.innerHTML = `<div class="error-msg"><p><strong>A apărut o eroare de conexiune:</strong><br>${error.message}</p><p style="font-size:0.9rem; margin-top:10px;">Dacă eroarea este "row-level security", te rog rulează comanda SQL de dezactivare RLS în Supabase.</p></div>`;
                     return;
                 }
 
-                if (data.length === 0) {
+                if (!data || data.length === 0) {
                     resultsArea.innerHTML = `
                         <div class="no-result">
                             <p style="margin:0; font-size: 1.1rem;"><strong>Nu am găsit "${query}"</strong></p>
-                            <p style="margin: 10px 0 0 0;">Încearcă să scrii cuvântul cu diacritice (ex: "rețea" în loc de "retea").</p>
+                            <p style="margin: 10px 0 0 0;">Încearcă să scrii cuvântul <strong>cu diacritice</strong> (ex: "mătură" în loc de "matura").</p>
                         </div>
                     `;
                 } else {
@@ -111,11 +114,11 @@
                 }
             } catch (err) {
                 console.error('Eroare neașteptată:', err);
-                resultsArea.innerHTML = '<div class="no-result"><p>A apărut o eroare de conexiune.</p></div>';
+                resultsArea.innerHTML = '<div class="error-msg"><p>A apărut o eroare neașteptată. Verifică consola (F12).</p></div>';
             }
         }
 
-        // Atașăm evenimentele
+        // 5. ATAȘARE EVENIMENTE
         searchBtn.addEventListener('click', performSearch);
         searchInput.addEventListener('keypress', function(event) {
             if (event.key === 'Enter') {
