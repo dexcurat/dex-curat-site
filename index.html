@@ -4,53 +4,206 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DEX Curat | Dicționarul Limbii Române Vii</title>
-    
-    <!-- 1. ÎNCĂRCAREA BIBLIOTECII SUPABASE (O SINGURĂ DATĂ) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f4f8; color: #1e293b; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-        .container { max-width: 700px; width: 100%; background: white; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); padding: 40px 20px; box-sizing: border-box; margin-top: 20px; }
-        .key-icon { font-size: 4rem; margin-bottom: 10px; text-align: center; }
-        h1 { color: #1e3a8a; font-size: 3rem; margin: 0 0 10px 0; text-align: center; }
-        .subtitle { color: #d97706; font-weight: bold; font-size: 1.1rem; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 1px; text-align: center; }
-        .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
-        input { flex: 1; padding: 18px 20px; font-size: 1.2rem; border: 3px solid #e2e8f0; border-radius: 12px; outline: none; }
-        input:focus { border-color: #1e3a8a; }
-        button { padding: 18px 30px; background: #1e3a8a; color: white; border: none; border-radius: 12px; font-size: 1.1rem; cursor: pointer; font-weight: bold; transition: background 0.3s; }
-        button:hover { background: #1e40af; }
-        .result-card { background: #f8fafc; border-left: 5px solid #1e3a8a; padding: 20px; border-radius: 8px; margin-bottom: 15px; animation: slideIn 0.3s ease-out; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .result-card h3 { color: #1e3a8a; margin: 0 0 10px 0; font-size: 1.4rem; }
-        .result-card p { color: #475569; margin: 0; line-height: 1.6; }
-        .tag { display: inline-block; background: #dbeafe; color: #1e40af; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; margin-right: 5px; margin-top: 10px; font-weight: 600; }
-        .no-result { background: #f1f5f9; padding: 30px; border-radius: 12px; text-align: center; color: #64748b; }
-        .error-msg { background: #fee2e2; padding: 20px; border-radius: 12px; text-align: center; color: #991b1b; border: 1px solid #f87171; }
-        .footer { margin-top: 40px; font-size: 0.9rem; color: #94a3b8; text-align: center; }
-        .btn { display: inline-block; padding: 12px 25px; background: #1e3a8a; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 15px; }
-        .links { margin-top: 20px; }
-        .links a { color: #64748b; text-decoration: none; margin: 0 10px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: #1e293b; 
+            padding: 15px; 
+            min-height: 100vh; 
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2); 
+            padding: 25px 20px; 
+        }
+        .header { text-align: center; margin-bottom: 25px; }
+        .key-icon { font-size: 3.5rem; margin-bottom: 10px; }
+        h1 { color: #1e3a8a; font-size: 2.2rem; margin-bottom: 5px; }
+        .subtitle { color: #d97706; font-weight: 600; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px; }
+        
+        /* Search Box */
+        .search-container { position: relative; margin-bottom: 20px; }
+        #searchInput { 
+            width: 100%; 
+            padding: 16px 20px; 
+            font-size: 1.1rem; 
+            border: 2px solid #e2e8f0; 
+            border-radius: 12px; 
+            outline: none; 
+            transition: all 0.3s; 
+        }
+        #searchInput:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        
+        /* Autocomplete */
+        .autocomplete-list { 
+            position: absolute; 
+            top: 100%; 
+            left: 0; 
+            right: 0; 
+            background: white; 
+            border: 1px solid #e2e8f0; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
+            z-index: 100; 
+            max-height: 250px; 
+            overflow-y: auto; 
+            display: none; 
+            margin-top: 5px; 
+        }
+        .autocomplete-item { 
+            padding: 12px 20px; 
+            cursor: pointer; 
+            border-bottom: 1px solid #f1f5f9; 
+            font-size: 1rem; 
+            transition: background 0.2s; 
+        }
+        .autocomplete-item:hover { background: #eff6ff; color: #1e3a8a; font-weight: 600; }
+        .autocomplete-item:last-child { border-bottom: none; }
+
+        /* Expresia Zilei */
+        .expression-card { 
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); 
+            border-left: 4px solid #d97706; 
+            padding: 15px; 
+            border-radius: 10px; 
+            margin-bottom: 20px; 
+        }
+        .expression-card h4 { color: #92400e; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 8px; }
+        .expression-card p { color: #78350f; font-size: 1rem; font-style: italic; line-height: 1.5; }
+
+        /* Results */
+        .results-info { 
+            margin-bottom: 15px; 
+            color: #64748b; 
+            font-size: 0.9rem; 
+            text-align: center; 
+        }
+        .result-card { 
+            background: #f8fafc; 
+            border-left: 4px solid #667eea; 
+            padding: 18px; 
+            border-radius: 10px; 
+            margin-bottom: 12px; 
+            animation: slideIn 0.3s ease-out; 
+        }
+        @keyframes slideIn { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .result-card h3 { 
+            color: #1e3a8a; 
+            font-size: 1.3rem; 
+            margin-bottom: 10px; 
+        }
+        .result-card p { 
+            color: #475569; 
+            line-height: 1.6; 
+            margin-bottom: 10px; 
+        }
+        .highlight-fig { 
+            color: #d97706; 
+            font-weight: 600; 
+            font-style: italic; 
+        }
+        .tag { 
+            display: inline-block; 
+            background: #dbeafe; 
+            color: #1e40af; 
+            padding: 4px 10px; 
+            border-radius: 15px; 
+            font-size: 0.75rem; 
+            margin-right: 6px; 
+            margin-top: 8px; 
+            font-weight: 600; 
+        }
+        .no-result { 
+            background: #f1f5f9; 
+            padding: 25px; 
+            border-radius: 10px; 
+            text-align: center; 
+            color: #64748b; 
+        }
+        .loading { 
+            color: #667eea; 
+            font-weight: 600; 
+            text-align: center; 
+            padding: 20px; 
+        }
+
+        /* Footer */
+        .footer { 
+            margin-top: 30px; 
+            text-align: center; 
+            font-size: 0.85rem; 
+            color: #94a3b8; 
+        }
+        .btn { 
+            display: inline-block; 
+            padding: 10px 20px; 
+            background: #667eea; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 8px; 
+            font-weight: 600; 
+            margin-top: 10px; 
+            transition: background 0.3s; 
+        }
+        .btn:hover { background: #5568d3; }
+        .links { margin-top: 15px; }
+        .links a { 
+            color: #64748b; 
+            text-decoration: none; 
+            margin: 0 8px; 
+            font-weight: 500; 
+        }
+        .links a:hover { color: #667eea; }
+
+        /* Mobile Optimization */
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .container { padding: 20px 15px; border-radius: 12px; }
+            h1 { font-size: 1.8rem; }
+            .subtitle { font-size: 0.85rem; }
+            #searchInput { font-size: 1rem; padding: 14px 16px; }
+            .result-card h3 { font-size: 1.15rem; }
+            .result-card p { font-size: 0.95rem; }
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <div class="key-icon">🗝️</div>
-        <h1>DEX Curat</h1>
-        <div class="subtitle">Dicționarul Limbii Române Vii & Muzeul Copilăriei</div>
+        <div class="header">
+            <div class="key-icon">🗝️</div>
+            <h1>DEX Curat</h1>
+            <div class="subtitle">Dicționarul Limbii Române Vii & Muzeul Copilăriei</div>
+        </div>
         
-        <div class="search-box">
-            <input type="text" id="searchInput" placeholder="Scrie un cuvânt (ex: ABACĂ, MĂTURĂ, NUC)...">
-            <button id="searchBtn">Caută</button>
+        <!-- Expresia Zilei -->
+        <div class="expression-card">
+            <h4>💡 Expresia Zilei</h4>
+            <p id="dailyExpression">"A sta pe capul cuiva" - A deranja insistent pe cineva, a cere ceva cu insistență până când persoana respectivă cedează.</p>
+        </div>
+
+        <!-- Căutare cu Autocomplete -->
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Caută un cuvânt (ex: curățenie, apă, cheie)..." autocomplete="off">
+            <div id="autocompleteList" class="autocomplete-list"></div>
         </div>
 
         <div id="resultsArea">
-            <p style="color: #94a3b8; text-align: center;">Scrie un cuvânt și apasă butonul Caută.</p>
+            <p style="color: #94a3b8; text-align: center;">Scrie pentru a căuta în dicționar...</p>
         </div>
 
         <div class="footer">
-            <p>Ai o expresie de adăugat în dicționar?</p>
-            <a href="mailto:contact@dex-curat.online" class="btn">Scrie-ne la contact@dex-curat.online</a>
+            <p>Ai o expresie de adăugat?</p>
+            <a href="mailto:contact@dex-curat.online" class="btn">Scrie-ne</a>
             <div class="links">
                 <a href="https://tiktok.com/@dexcurat" target="_blank">TikTok</a> • 
                 <a href="https://instagram.com/dexcurat" target="_blank">Instagram</a> • 
@@ -60,71 +213,143 @@
     </div>
 
     <script>
-        // 2. CONFIGURARE (Cheile tale sunt deja introduse corect aici)
+        // Configurare Supabase
         const SUPABASE_URL = 'https://jfvdiwsdygvmsonivhpx.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmdmRpd3NkeWd2bXNvbml2aHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxNzcxNDksImV4cCI6MjEwNzc1MzE0OX0.toJdOrqDayf46J1w0Bfzaf5KaxsNj8mQqksMscIhsFQ';
 
-        // 3. INITIALIZARE CLIENT (Folosim 'supabaseClient' pentru a evita conflictele de nume)
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const searchInput = document.getElementById('searchInput');
-        const searchBtn = document.getElementById('searchBtn');
+        const autocompleteList = document.getElementById('autocompleteList');
         const resultsArea = document.getElementById('resultsArea');
 
-        async function performSearch() {
-            const query = searchInput.value.trim();
+        let debounceTimer;
+
+        // Căutare automată la tastare (cu debounce)
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            const query = e.target.value.trim();
             
             if (query.length < 2) {
-                resultsArea.innerHTML = '<p style="color: #94a3b8; text-align: center;">Scrie cel puțin 2 caractere.</p>';
+                autocompleteList.style.display = 'none';
+                resultsArea.innerHTML = '<p style="color: #94a3b8; text-align: center;">Scrie pentru a căuta în dicționar...</p>';
                 return;
             }
 
-            resultsArea.innerHTML = '<p style="color: #1e3a8a; text-align: center; font-weight: bold;">🔍 Căutăm în cele 27.000 de definiții...</p>';
+            // Debounce 400ms pentru performanță
+            debounceTimer = setTimeout(() => {
+                fetchSuggestions(query);
+                performSearch(query);
+            }, 400);
+        });
+
+        // Autocomplete - sugestii
+        async function fetchSuggestions(query) {
+            try {
+                const { data } = await supabaseClient
+                    .from('cuvinte')
+                    .select('termen')
+                    .ilike('termen', `%${query}%`)
+                    .limit(5);
+
+                if (data && data.length > 0) {
+                    autocompleteList.innerHTML = data.map(item => 
+                        `<div class="autocomplete-item" onclick="selectSuggestion('${item.termen.replace(/'/g, "\\'")}')">${item.termen}</div>`
+                    ).join('');
+                    autocompleteList.style.display = 'block';
+                } else {
+                    autocompleteList.style.display = 'none';
+                }
+            } catch (err) {
+                console.error('Eroare autocomplete:', err);
+            }
+        }
+
+        // Selectare sugestie
+        function selectSuggestion(termen) {
+            searchInput.value = termen;
+            autocompleteList.style.display = 'none';
+            performSearch(termen);
+        }
+
+        // Închidere autocomplete la click în afară
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-container')) {
+                autocompleteList.style.display = 'none';
+            }
+        });
+
+        // Căutare principală
+        async function performSearch(query) {
+            if (!query || query.length < 2) return;
+
+            resultsArea.innerHTML = '<div class="loading"> Căutăm...</div>';
 
             try {
-                // 4. INTEROGARE BAZA DE DATE
                 const { data, error } = await supabaseClient
                     .from('cuvinte')
                     .select('termen, definitie, taguri')
-                    .ilike('termen', `%${query}%`) // Căutare case-insensitive
+                    .ilike('termen', `%${query}%`)
                     .limit(15);
 
-                if (error) {
-                    console.error('Eroare Supabase:', error);
-                    resultsArea.innerHTML = `<div class="error-msg"><p><strong>A apărut o eroare de conexiune:</strong><br>${error.message}</p><p style="font-size:0.9rem; margin-top:10px;">Dacă eroarea este "row-level security", te rog rulează comanda SQL de dezactivare RLS în Supabase.</p></div>`;
-                    return;
-                }
+                if (error) throw error;
 
                 if (!data || data.length === 0) {
                     resultsArea.innerHTML = `
                         <div class="no-result">
                             <p style="margin:0; font-size: 1.1rem;"><strong>Nu am găsit "${query}"</strong></p>
-                            <p style="margin: 10px 0 0 0;">Încearcă să scrii cuvântul <strong>cu diacritice</strong> (ex: "mătură" în loc de "matura").</p>
+                            <p style="margin: 10px 0 0 0;">Încearcă să scrii cuvântul cu diacritice.</p>
                         </div>
                     `;
                 } else {
-                    resultsArea.innerHTML = `<div style="margin-bottom: 15px; color: #64748b; font-size: 0.9rem;">✅ Am găsit <strong>${data.length}</strong> rezultate pentru "${query}"</div>` +
-                        data.map(item => `
-                            <div class="result-card">
-                                <h3>${item.termen}</h3>
-                                <p>${item.definitie}</p>
-                                <div>${item.taguri ? item.taguri.split(',').map(tag => `<span class="tag">#${tag.trim()}</span>`).join('') : ''}</div>
-                            </div>
-                        `).join('');
+                    // Sortare inteligentă
+                    const sortedData = data.sort((a, b) => {
+                        const aTerm = a.termen.toLowerCase();
+                        const bTerm = b.termen.toLowerCase();
+                        const q = query.toLowerCase();
+
+                        if (aTerm === q) return -1;
+                        if (bTerm === q) return 1;
+                        if (aTerm.startsWith(q) && !bTerm.startsWith(q)) return -1;
+                        if (!aTerm.startsWith(q) && bTerm.startsWith(q)) return 1;
+                        return 0;
+                    });
+
+                    resultsArea.innerHTML = `<div class="results-info">✅ Am găsit <strong>${sortedData.length}</strong> rezultate</div>` +
+                        sortedData.map(item => {
+                            // Evidențiere sensuri figurative/peiorative
+                            let def = item.definitie;
+                            def = def.replace(/\(fig\.\)/gi, '<span class="highlight-fig">(fig.)</span>');
+                            def = def.replace(/\(peior\.\)/gi, '<span class="highlight-fig">(peior.)</span>');
+                            def = def.replace(/\(glumeț\)/gi, '<span class="highlight-fig">(glumeț)</span>');
+
+                            return `
+                                <div class="result-card">
+                                    <h3>${item.termen}</h3>
+                                    <p>${def}</p>
+                                    <div>${item.taguri ? item.taguri.split(',').map(tag => `<span class="tag">#${tag.trim()}</span>`).join('') : ''}</div>
+                                </div>
+                            `;
+                        }).join('');
                 }
             } catch (err) {
-                console.error('Eroare neașteptată:', err);
-                resultsArea.innerHTML = '<div class="error-msg"><p>A apărut o eroare neașteptată. Verifică consola (F12).</p></div>';
+                console.error('Eroare:', err);
+                resultsArea.innerHTML = '<div class="no-result"><p>A apărut o eroare. Încearcă din nou.</p></div>';
             }
         }
 
-        // 5. ATAȘARE EVENIMENTE
-        searchBtn.addEventListener('click', performSearch);
-        searchInput.addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                performSearch();
-            }
-        });
+        // Expresii aleatoare (opțional - poți schimba manual)
+        const expresii = [
+            '"A sta pe capul cuiva" - A deranja insistent pe cineva.',
+            '"A umbla cu găina" - A face pe prostul, a se preface că nu înțelege.',
+            '"A lua papagalul" - A fi prins copiind sau mințind.',
+            '"A face pe grozavul" - A pretinde că ești curajos.',
+            '"Bulă de săpun" - Ceva efemer, care se sparge ușor.'
+        ];
+
+        // Schimbă expresia zilnică (la fiecare refresh)
+        document.getElementById('dailyExpression').textContent = 
+            expresii[Math.floor(Math.random() * expresii.length)];
     </script>
 </body>
 </html>
