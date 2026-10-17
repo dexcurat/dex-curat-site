@@ -1,170 +1,339 @@
-# Instalăm pdfplumber
-!pip install pdfplumber -q
-
-import pdfplumber
-import csv
-import re
-from google.colab import files
-
-print("📂 PASUL 1: Încarcă fișierul PDF (dictionarul original.pdf)...")
-uploaded = files.upload()
-
-if not uploaded:
-    print("❌ Nu a fost încărcat niciun fișier.")
-else:
-    pdf_filename = list(uploaded.keys())[0]
-    print(f"\n✅ Fișierul '{pdf_filename}' încărcat.")
-    print("⚡ Pornim extragerea avansată (cu reparare bug font și detecție coloane)...")
-
-    output_csv = 'dex_final_30k.csv'
-    count = 0
-    
-    # Harta pentru eliminarea accentelor de intensitate
-    accent_map = str.maketrans('áéíóúÁÉÍÓÚ', 'aeiouAEIOU')
-    
-    # Lista de tag-uri gramaticale pentru a identifica startul unei intrări
-    grammar_tags = r'(?:s\.[mnf]\.|adj\.|adv\.|vb\.[IVX]*|prep\.|conj\.|interj\.|num\.|art\.|loc\.|expr\.|fig\.|pop\.|fam\.|rar|livr\.|reg\.|argou|invar\.|tr\.|intr\.|refl\.|impers\.|aux\.|copul\.|şi|sau|,|num\.card\.|num\.ord\.|pron\.|pron\.interog\.|pron\.nehot\.|pron\.dem\.|pron\.pos\.|pron\.refl\.|art\.hot\.|art\.nehot\.|loc\.adv\.|loc\.prep\.|loc\.conj\.|vb\.[IVX]+\s+tr\.|vb\.[IVX]+\s+intr\.|vb\.[IVX]+\s+refl\.)'
-    
-    # Regex pentru o intrare nouă: Termen + Gramatică + Definiție
-    # Termenul poate conține litere, cifre, cratime, tilde
-    entry_pattern = re.compile(
-        r'^'
-        r'([A-Za-z0-9ĂÂÎȘăâîșț\-~]+(?:,\s*‐?[ăâîșța-zA-Z]+)?)'  # Grup 1: Termen
-        r'\s+'
-        r'(' + grammar_tags + r'+)'  # Grup 2: Gramatică
-        r'\s*'
-        r'(.+)$',  # Grup 3: Definiție
-        re.IGNORECASE
-    )
-    
-    def clean_term(raw_term):
-        """Curăță termenul de bug-ul fontului (Ț inserat) și alte artefacte."""
-        # 1. Eliminăm bug-ul specific: 'Ț' inserat în fața fiecărei litere
-        # Ex: "ȚEȚXȚC" -> "EXC"
-        cleaned = re.sub(r'Ț([A-Za-z])', r'\1', raw_term)
-        # Dacă mai sunt Ț-uri izolate la început, le eliminăm
-        cleaned = cleaned.strip('Ț')
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DEX Curat | Dicționarul Limbii Române Vii</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: #1e293b; 
+            padding: 15px; 
+            min-height: 100vh; 
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2); 
+            padding: 25px 20px; 
+        }
+        .header { text-align: center; margin-bottom: 25px; }
+        .key-icon { font-size: 3.5rem; margin-bottom: 10px; }
+        h1 { color: #1e3a8a; font-size: 2.2rem; margin-bottom: 5px; }
+        .subtitle { color: #d97706; font-weight: 600; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px; }
         
-        # 2. Eliminăm accentul de intensitate și transformăm în majuscule
-        cleaned = cleaned.translate(accent_map).upper()
+        .search-container { position: relative; margin-bottom: 20px; }
+        #searchInput { 
+            width: 100%; 
+            padding: 16px 20px; 
+            font-size: 1.1rem; 
+            border: 2px solid #e2e8f0; 
+            border-radius: 12px; 
+            outline: none; 
+            transition: all 0.3s; 
+        }
+        #searchInput:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
         
-        # 3. Corectăm sedila (veche) în virgulă (nouă)
-        cleaned = cleaned.replace('Ţ', 'Ț').replace('Ş', 'Ș').replace('ţ', 'ț').replace('ş', 'ș')
-        
-        # 4. Păstrăm doar literele românești, cifrele și cratimele
-        cleaned = re.sub(r'[^A-ZĂÂÎȘȚ0-9\-]', '', cleaned)
-        
-        return cleaned
+        .autocomplete-list { 
+            position: absolute; 
+            top: 100%; 
+            left: 0; 
+            right: 0; 
+            background: white; 
+            border: 1px solid #e2e8f0; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
+            z-index: 100; 
+            max-height: 250px; 
+            overflow-y: auto; 
+            display: none; 
+            margin-top: 5px; 
+        }
+        .autocomplete-item { 
+            padding: 12px 20px; 
+            cursor: pointer; 
+            border-bottom: 1px solid #f1f5f9; 
+            font-size: 1rem; 
+            transition: background 0.2s; 
+        }
+        .autocomplete-item:hover { background: #eff6ff; color: #1e3a8a; font-weight: 600; }
+        .autocomplete-item:last-child { border-bottom: none; }
 
-    with open(output_csv, 'w', encoding='utf-8', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(['termen', 'definitie', 'taguri'])
+        .expression-card { 
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); 
+            border-left: 4px solid #d97706; 
+            padding: 15px; 
+            border-radius: 10px; 
+            margin-bottom: 20px; 
+        }
+        .expression-card h4 { color: #92400e; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 8px; }
+        .expression-card p { color: #78350f; font-size: 1rem; font-style: italic; line-height: 1.5; }
 
-        current_entry = None
+        .results-info { 
+            margin-bottom: 15px; 
+            color: #64748b; 
+            font-size: 0.9rem; 
+            text-align: center; 
+        }
+        .result-card { 
+            background: #f8fafc; 
+            border-left: 4px solid #667eea; 
+            padding: 18px; 
+            border-radius: 10px; 
+            margin-bottom: 12px; 
+            animation: slideIn 0.3s ease-out; 
+        }
+        @keyframes slideIn { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .result-card h3 { 
+            color: #1e3a8a; 
+            font-size: 1.3rem; 
+            margin-bottom: 10px; 
+        }
+        .result-card p { 
+            color: #475569; 
+            line-height: 1.6; 
+            margin-bottom: 10px; 
+        }
+        .highlight-fig { 
+            color: #d97706; 
+            font-weight: 600; 
+            font-style: italic; 
+        }
+        .tag { 
+            display: inline-block; 
+            background: #dbeafe; 
+            color: #1e40af; 
+            padding: 4px 10px; 
+            border-radius: 15px; 
+            font-size: 0.75rem; 
+            margin-right: 6px; 
+            margin-top: 8px; 
+            font-weight: 600; 
+        }
+        .no-result { 
+            background: #f1f5f9; 
+            padding: 25px; 
+            border-radius: 10px; 
+            text-align: center; 
+            color: #64748b; 
+        }
+        .loading { 
+            color: #667eea; 
+            font-weight: 600; 
+            text-align: center; 
+            padding: 20px; 
+        }
+
+        .footer { 
+            margin-top: 30px; 
+            text-align: center; 
+            font-size: 0.85rem; 
+            color: #94a3b8; 
+        }
+        .btn { 
+            display: inline-block; 
+            padding: 10px 20px; 
+            background: #667eea; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 8px; 
+            font-weight: 600; 
+            margin-top: 10px; 
+            transition: background 0.3s; 
+        }
+        .btn:hover { background: #5568d3; }
+        .links { margin-top: 15px; }
+        .links a { 
+            color: #64748b; 
+            text-decoration: none; 
+            margin: 0 8px; 
+            font-weight: 500; 
+        }
+        .links a:hover { color: #667eea; }
+
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .container { padding: 20px 15px; border-radius: 12px; }
+            h1 { font-size: 1.8rem; }
+            .subtitle { font-size: 0.85rem; }
+            #searchInput { font-size: 1rem; padding: 14px 16px; }
+            .result-card h3 { font-size: 1.15rem; }
+            .result-card p { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <div class="key-icon">🗝️</div>
+            <h1>DEX Curat</h1>
+            <div class="subtitle">Dicționarul Limbii Române Vii & Muzeul Copilăriei</div>
+        </div>
         
-        try:
-            with pdfplumber.open(pdf_filename) as pdf:
-                total_pages = len(pdf.pages)
-                print(f" PDF-ul are {total_pages} pagini. Începem...\n")
-                
-                for i, page in enumerate(pdf.pages):
-                    # Folosim layout=True pentru a păstra structura vizuală a coloanelor
-                    text = page.extract_text(layout=True)
-                    if not text:
-                        continue
+        <div class="expression-card">
+            <h4>💡 Expresia Zilei</h4>
+            <p id="dailyExpression">"A sta pe capul cuiva" - A deranja insistent pe cineva.</p>
+        </div>
+
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Caută un cuvânt (ex: cravata, apă, cheie)..." autocomplete="off">
+            <div id="autocompleteList" class="autocomplete-list"></div>
+        </div>
+
+        <div id="resultsArea">
+            <p style="color: #94a3b8; text-align: center;">Scrie pentru a căuta în dicționar...</p>
+        </div>
+
+        <div class="footer">
+            <p>Ai o expresie de adăugat?</p>
+            <a href="mailto:contact@dex-curat.online" class="btn">Scrie-ne</a>
+            <div class="links">
+                <a href="https://tiktok.com/@dexcurat" target="_blank">TikTok</a> • 
+                <a href="https://instagram.com/dexcurat" target="_blank">Instagram</a> • 
+                <a href="https://youtube.com/@dexcurat" target="_blank">YouTube</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://jfvdiwsdygvmsonivhpx.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmdmRpd3NkeWd2bXNvbml2aHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxNzcxNDksImV4cCI6MjEwNzc1MzE0OX0.toJdOrqDayf46J1w0Bfzaf5KaxsNj8mQqksMscIhsFQ';
+
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const searchInput = document.getElementById('searchInput');
+        const autocompleteList = document.getElementById('autocompleteList');
+        const resultsArea = document.getElementById('resultsArea');
+
+        let debounceTimer;
+
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            const query = e.target.value.trim();
+            
+            if (query.length < 2) {
+                autocompleteList.style.display = 'none';
+                resultsArea.innerHTML = '<p style="color: #94a3b8; text-align: center;">Scrie pentru a căuta în dicționar...</p>';
+                return;
+            }
+
+            debounceTimer = setTimeout(() => {
+                fetchSuggestions(query);
+                performSearch(query);
+            }, 400);
+        });
+
+        async function fetchSuggestions(query) {
+            try {
+                // Folosim funcția search_dex care ignoră diacriticele
+                const { data } = await supabaseClient
+                    .rpc('search_dex', { query_text: query });
+
+                if (data && data.length > 0) {
+                    // Luăm doar primele 5 termeni unici
+                    const uniqueTerms = [...new Set(data.map(item => item.termen))].slice(0, 5);
                     
-                    # Procesăm fiecare linie
-                    lines = text.split('\n')
-                    for line in lines:
-                        # Separăm coloanele: dacă linia are un spațiu mare (3+ spații), o împărțim
-                        # Acest lucru separă textul din coloana 1 de cel din coloana 2
-                        segments = re.split(r'\s{3,}', line)
-                        
-                        for segment in segments:
-                            segment = segment.strip()
-                            if not segment:
-                                continue
-                            
-                            match = entry_pattern.match(segment)
-                            if match:
-                                raw_term = match.group(1).strip()
-                                raw_gram = match.group(2).strip()
-                                raw_def = match.group(3).strip()
-                                
-                                clean_term_text = clean_term(raw_term)
-                                
-                                if clean_term_text and len(clean_term_text) >= 2:
-                                    # Salvăm intrarea anterioară
-                                    if current_entry:
-                                        writer.writerow([current_entry['termen'], current_entry['definitie'], current_entry['taguri']])
-                                        count += 1
-                                    
-                                    # Generăm tag-uri
-                                    taguri = ["dex", "romana"]
-                                    gr_lower = raw_gram.lower()
-                                    if "s.m." in gr_lower or "s.f." in gr_lower or "s.n." in gr_lower:
-                                        taguri.append("substantiv")
-                                    elif "adj" in gr_lower:
-                                        taguri.append("adjectiv")
-                                    elif "vb." in gr_lower or "tr." in gr_lower or "intr." in gr_lower or "refl." in gr_lower:
-                                        taguri.append("verb")
-                                    elif "adv" in gr_lower:
-                                        taguri.append("adverb")
-                                    elif "interj" in gr_lower:
-                                        taguri.append("interjecție")
-                                    elif "prep" in gr_lower:
-                                        taguri.append("prepoziție")
-                                    elif "conj" in gr_lower:
-                                        taguri.append("conjuncție")
-                                    elif "pron" in gr_lower:
-                                        taguri.append("pronume")
-                                    elif "num" in gr_lower:
-                                        taguri.append("numeral")
-                                    elif "art" in gr_lower:
-                                        taguri.append("articol")
-                                    elif "loc" in gr_lower or "expr" in gr_lower:
-                                        taguri.append("expresie")
-                                    
-                                    current_entry = {
-                                        'termen': clean_term_text,
-                                        'definitie': raw_def.replace('<br>', ' ').replace('\n', ' ').strip(),
-                                        'taguri': ", ".join(taguri)
-                                    }
-                            else:
-                                # Linii de continuare a definiției
-                                if current_entry:
-                                    clean_line = segment.replace('<br>', ' ').replace('|', ' ').strip()
-                                    # Ignorăm etimologia și indicațiile de final
-                                    ignore_patterns = [
-                                        r'^–\s*Sil\.', r'^–\s*Pl\.', r'^–\s*G\.‐D\.',
-                                        r'^–\s*Acc\.', r'^–\s*Pr\.', r'^–\s*Scris',
-                                        r'^–\s*Var\.', r'^–\s*Par\.', r'^–\s*Forma',
-                                        r'^\d+\.?\s*$'
-                                    ]
-                                    should_ignore = any(re.match(p, clean_line) for p in ignore_patterns)
-                                    if clean_line and not should_ignore and len(clean_line) > 5:
-                                        current_entry['definitie'] += ' ' + clean_line
-                    
-                    if (i + 1) % 50 == 0:
-                        print(f"🔄 Progres: Pagina {i+1} din {total_pages}... (Găsite {count} definiții)")
-        
-        except Exception as e:
-            print(f"❌ Eroare majoră: {e}")
-        
-        # Salvăm ultima intrare
-        if current_entry:
-            writer.writerow([current_entry['termen'], current_entry['definitie'], current_entry['taguri']])
-            count += 1
-    
-    print(f"\n🎉 SUCCES! Am procesat {count} de definiții.")
-    print(f"📁 Fișierul a fost salvat ca: {output_csv}")
-    
-    # Afișăm primele 15 linii pentru verificare
-    print("\n🔍 PRIMELE 15 LINII DIN CSV (verifică dacă termenii sunt curați):")
-    with open(output_csv, 'r', encoding='utf-8') as f:
-        for idx, line in enumerate(f):
-            if idx < 16:
-                print(f"  {idx}: {line.strip()[:100]}")
-    
-    print("\n⬇️ Descărcarea fișierului începe AUTOMAT...")
-    files.download(output_csv)
+                    autocompleteList.innerHTML = uniqueTerms.map(termen => 
+                        `<div class="autocomplete-item" onclick="selectSuggestion('${termen.replace(/'/g, "\\'")}')">${termen}</div>`
+                    ).join('');
+                    autocompleteList.style.display = 'block';
+                } else {
+                    autocompleteList.style.display = 'none';
+                }
+            } catch (err) {
+                console.error('Eroare autocomplete:', err);
+            }
+        }
+
+        function selectSuggestion(termen) {
+            searchInput.value = termen;
+            autocompleteList.style.display = 'none';
+            performSearch(termen);
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-container')) {
+                autocompleteList.style.display = 'none';
+            }
+        });
+
+        async function performSearch(query) {
+            if (!query || query.length < 2) return;
+
+            resultsArea.innerHTML = '<div class="loading">🔍 Căutăm...</div>';
+
+            try {
+                // Folosim funcția search_dex care ignoră diacriticele
+                const { data, error } = await supabaseClient
+                    .rpc('search_dex', { query_text: query });
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    resultsArea.innerHTML = `
+                        <div class="no-result">
+                            <p style="margin:0; font-size: 1.1rem;"><strong>Nu am găsit "${query}"</strong></p>
+                            <p style="margin: 10px 0 0 0;">Încearcă un alt cuvânt.</p>
+                        </div>
+                    `;
+                } else {
+                    // Sortare inteligentă: Exact -> Începe cu -> Conține
+                    const sortedData = data.sort((a, b) => {
+                        const aTerm = a.termen.toLowerCase();
+                        const bTerm = b.termen.toLowerCase();
+                        const q = query.toLowerCase();
+
+                        if (aTerm === q) return -1;
+                        if (bTerm === q) return 1;
+                        if (aTerm.startsWith(q) && !bTerm.startsWith(q)) return -1;
+                        if (!aTerm.startsWith(q) && bTerm.startsWith(q)) return 1;
+                        return 0;
+                    });
+
+                    // Limităm la 15 rezultate
+                    const limitedData = sortedData.slice(0, 15);
+
+                    resultsArea.innerHTML = `<div class="results-info">✅ Am găsit <strong>${limitedData.length}</strong> rezultate</div>` +
+                        limitedData.map(item => {
+                            let def = item.definitie;
+                            def = def.replace(/\(fig\.\)/gi, '<span class="highlight-fig">(fig.)</span>');
+                            def = def.replace(/\(peior\.\)/gi, '<span class="highlight-fig">(peior.)</span>');
+                            def = def.replace(/\(glumeț\)/gi, '<span class="highlight-fig">(glumeț)</span>');
+
+                            return `
+                                <div class="result-card">
+                                    <h3>${item.termen}</h3>
+                                    <p>${def}</p>
+                                    <div>${item.taguri ? item.taguri.split(',').map(tag => `<span class="tag">#${tag.trim()}</span>`).join('') : ''}</div>
+                                </div>
+                            `;
+                        }).join('');
+                }
+            } catch (err) {
+                console.error('Eroare:', err);
+                resultsArea.innerHTML = '<div class="no-result"><p>A apărut o eroare. Încearcă din nou.</p></div>';
+            }
+        }
+
+        const expresii = [
+            '"A sta pe capul cuiva" - A deranja insistent pe cineva.',
+            '"A umbla cu găina" - A face pe prostul, a se preface că nu înțelege.',
+            '"A lua papagalul" - A fi prins copiind sau mințind.',
+            '"A face pe grozavul" - A pretinde că ești curajos.',
+            '"Bulă de săpun" - Ceva efemer, care se sparge ușor.'
+        ];
+
+        document.getElementById('dailyExpression').textContent = 
+            expresii[Math.floor(Math.random() * expresii.length)];
+    </script>
+</body>
+</html>
