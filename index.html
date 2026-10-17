@@ -27,7 +27,6 @@
         h1 { color: #1e3a8a; font-size: 2.5rem; margin-bottom: 5px; font-weight: 800; }
         .subtitle { color: #d97706; font-weight: 600; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px; }
         
-        /* Search Box */
         .search-container { position: relative; margin-bottom: 25px; }
         #searchInput { 
             width: 100%; 
@@ -40,132 +39,42 @@
         }
         #searchInput:focus { border-color: #1e3a8a; box-shadow: 0 0 0 4px rgba(30, 58, 138, 0.1); }
         
-        /* Autocomplete */
         .autocomplete-list { 
-            position: absolute; 
-            top: 100%; 
-            left: 0; 
-            right: 0; 
-            background: white; 
-            border: 1px solid #e2e8f0; 
-            border-radius: 12px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
-            z-index: 100; 
-            max-height: 250px; 
-            overflow-y: auto; 
-            display: none; 
-            margin-top: 5px; 
+            position: absolute; top: 100%; left: 0; right: 0; 
+            background: white; border: 1px solid #e2e8f0; border-radius: 12px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 100; 
+            max-height: 250px; overflow-y: auto; display: none; margin-top: 5px; 
         }
-        .autocomplete-item { 
-            padding: 12px 20px; 
-            cursor: pointer; 
-            border-bottom: 1px solid #f1f5f9; 
-            font-size: 1rem; 
-            transition: background 0.2s; 
-        }
+        .autocomplete-item { padding: 12px 20px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 1rem; }
         .autocomplete-item:hover { background: #eff6ff; color: #1e3a8a; font-weight: 600; }
-        .autocomplete-item:last-child { border-bottom: none; }
 
-        /* Expresia Zilei */
         .expression-card { 
             background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); 
-            border-left: 5px solid #d97706; 
-            padding: 20px; 
-            border-radius: 12px; 
-            margin-bottom: 25px; 
+            border-left: 5px solid #d97706; padding: 20px; border-radius: 12px; margin-bottom: 25px; 
         }
         .expression-card h4 { color: #92400e; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 8px; font-weight: 700; }
         .expression-card p { color: #78350f; font-size: 1.05rem; font-style: italic; line-height: 1.5; }
 
-        /* Results */
-        .results-info { 
-            margin-bottom: 15px; 
-            color: #64748b; 
-            font-size: 0.9rem; 
-            text-align: center; 
-            font-weight: 600;
-        }
+        .results-info { margin-bottom: 15px; color: #64748b; font-size: 0.9rem; text-align: center; font-weight: 600; }
         .result-card { 
-            background: #f8fafc; 
-            border-left: 5px solid #1e3a8a; 
-            padding: 20px; 
-            border-radius: 12px; 
-            margin-bottom: 15px; 
-            animation: slideIn 0.3s ease-out; 
+            background: #f8fafc; border-left: 5px solid #1e3a8a; padding: 20px; 
+            border-radius: 12px; margin-bottom: 15px; animation: slideIn 0.3s ease-out; 
         }
-        @keyframes slideIn { 
-            from { opacity: 0; transform: translateY(10px); } 
-            to { opacity: 1; transform: translateY(0); } 
-        }
-        .result-card h3 { 
-            color: #1e3a8a; 
-            font-size: 1.4rem; 
-            margin-bottom: 10px; 
-            font-weight: 700;
-        }
-        .result-card p { 
-            color: #475569; 
-            line-height: 1.6; 
-            margin-bottom: 12px; 
-            font-size: 1.05rem;
-        }
-        .highlight-fig { 
-            color: #d97706; 
-            font-weight: 600; 
-            font-style: italic; 
-        }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .result-card h3 { color: #1e3a8a; font-size: 1.4rem; margin-bottom: 10px; font-weight: 700; }
+        .result-card p { color: #475569; line-height: 1.6; margin-bottom: 12px; font-size: 1.05rem; }
+        .highlight-fig { color: #d97706; font-weight: 600; font-style: italic; }
         .tags-container { display: flex; flex-wrap: wrap; gap: 6px; }
-        .tag { 
-            display: inline-block; 
-            background: #e0e7ff; 
-            color: #3730a3; 
-            padding: 4px 10px; 
-            border-radius: 20px; 
-            font-size: 0.75rem; 
-            font-weight: 600; 
-        }
-        .tag.seo { background: #dcfce7; color: #166534; } /* Tag-uri SEO verzi */
+        .tag { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+        .tag.seo { background: #dcfce7; color: #166534; }
         
-        .no-result { 
-            background: #f1f5f9; 
-            padding: 30px; 
-            border-radius: 12px; 
-            text-align: center; 
-            color: #64748b; 
-        }
-        .loading { 
-            color: #1e3a8a; 
-            font-weight: 600; 
-            text-align: center; 
-            padding: 20px; 
-        }
+        .no-result { background: #f1f5f9; padding: 30px; border-radius: 12px; text-align: center; color: #64748b; }
+        .loading { color: #1e3a8a; font-weight: 600; text-align: center; padding: 20px; }
 
-        /* Footer */
-        .footer { 
-            margin-top: 40px; 
-            text-align: center; 
-            font-size: 0.85rem; 
-            color: #94a3b8; 
-        }
-        .btn { 
-            display: inline-block; 
-            padding: 12px 24px; 
-            background: #1e3a8a; 
-            color: white; 
-            text-decoration: none; 
-            border-radius: 8px; 
-            font-weight: 600; 
-            margin-top: 15px; 
-            transition: background 0.3s; 
-        }
-        .btn:hover { background: #1e40af; }
+        .footer { margin-top: 40px; text-align: center; font-size: 0.85rem; color: #94a3b8; }
+        .btn { display: inline-block; padding: 12px 24px; background: #1e3a8a; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; margin-top: 15px; }
         .links { margin-top: 15px; }
-        .links a { 
-            color: #64748b; 
-            text-decoration: none; 
-            margin: 0 10px; 
-            font-weight: 500; 
-        }
+        .links a { color: #64748b; text-decoration: none; margin: 0 10px; font-weight: 500; }
         .links a:hover { color: #1e3a8a; }
 
         @media (max-width: 480px) {
@@ -173,7 +82,6 @@
             .container { padding: 20px 15px; }
             h1 { font-size: 2rem; }
             #searchInput { font-size: 1rem; padding: 15px; }
-            .result-card h3 { font-size: 1.25rem; }
         }
     </style>
 </head>
@@ -181,9 +89,10 @@
 
     <div class="container">
         <div class="header">
-            <div class="key-icon">🗝️</div>
+            <div class="key-icon">️</div>
             <h1>DEX Curat</h1>
-            <div class="subtitle">Dicționarul Limbii Române Vii & Muzeul Copilăriei</div>
+            <!-- AICI AM SCHIMBAT TITLUL -->
+            <div class="subtitle">Dicționarul Limbii Române Vii & Muzeul Expresiilor din Copilărie</div>
         </div>
         
         <div class="expression-card">
@@ -223,14 +132,13 @@
 
         let debounceTimer;
 
-        // Căutare automată la tastare
         searchInput.addEventListener('input', (e) => {
             clearTimeout(debounceTimer);
             const query = e.target.value.trim();
             
             if (query.length < 2) {
                 autocompleteList.style.display = 'none';
-                resultsArea.innerHTML = '<p style="color: #94a3b8; text-align: center;">Scrie pentru a căuta în cele 32.000+ de definiții...</p>';
+                resultsArea.innerHTML = '<p style="color: #94a3b8; text-align: center;">Scrie pentru a căuta...</p>';
                 return;
             }
 
@@ -240,15 +148,11 @@
             }, 400);
         });
 
-        // Autocomplete (folosește funcția magică search_dex)
         async function fetchSuggestions(query) {
             try {
-                const { data } = await supabaseClient
-                    .rpc('search_dex', { query_text: query });
-
+                const { data } = await supabaseClient.rpc('search_dex', { query_text: query });
                 if (data && data.length > 0) {
                     const uniqueTerms = [...new Set(data.map(item => item.termen))].slice(0, 5);
-                    
                     autocompleteList.innerHTML = uniqueTerms.map(termen => 
                         `<div class="autocomplete-item" onclick="selectSuggestion('${termen.replace(/'/g, "\\'")}')">${termen}</div>`
                     ).join('');
@@ -256,9 +160,7 @@
                 } else {
                     autocompleteList.style.display = 'none';
                 }
-            } catch (err) {
-                console.error('Eroare autocomplete:', err);
-            }
+            } catch (err) { console.error('Eroare autocomplete:', err); }
         }
 
         function selectSuggestion(termen) {
@@ -268,37 +170,26 @@
         }
 
         document.addEventListener('click', (e) => {
-            if (!e.target.closest('.search-container')) {
-                autocompleteList.style.display = 'none';
-            }
+            if (!e.target.closest('.search-container')) autocompleteList.style.display = 'none';
         });
 
-        // Căutare principală (folosește funcția magică search_dex)
         async function performSearch(query) {
             if (!query || query.length < 2) return;
 
-            resultsArea.innerHTML = '<div class="loading">🔍 Căutăm în dicționar...</div>';
+            resultsArea.innerHTML = '<div class="loading">🔍 Căutăm...</div>';
 
             try {
-                const { data, error } = await supabaseClient
-                    .rpc('search_dex', { query_text: query });
-
+                const { data, error } = await supabaseClient.rpc('search_dex', { query_text: query });
                 if (error) throw error;
 
                 if (!data || data.length === 0) {
-                    resultsArea.innerHTML = `
-                        <div class="no-result">
-                            <p style="margin:0; font-size: 1.1rem;"><strong>Nu am găsit "${query}"</strong></p>
-                            <p style="margin: 10px 0 0 0;">Încearcă un alt cuvânt sau scrie-ne pentru a-l adăuga!</p>
-                        </div>
-                    `;
+                    resultsArea.innerHTML = `<div class="no-result"><p><strong>Nu am găsit "${query}"</strong></p></div>`;
                 } else {
-                    // Sortare inteligentă: Exact -> Începe cu -> Conține
+                    // Sortare: Exact -> Începe cu -> Conține
                     const sortedData = data.sort((a, b) => {
                         const aTerm = a.termen.toLowerCase();
                         const bTerm = b.termen.toLowerCase();
                         const q = query.toLowerCase();
-
                         if (aTerm === q) return -1;
                         if (bTerm === q) return 1;
                         if (aTerm.startsWith(q) && !bTerm.startsWith(q)) return -1;
@@ -313,9 +204,7 @@
                             let def = item.definitie;
                             def = def.replace(/\(fig\.\)/gi, '<span class="highlight-fig">(fig.)</span>');
                             def = def.replace(/\(peior\.\)/gi, '<span class="highlight-fig">(peior.)</span>');
-                            def = def.replace(/\(glumeț\)/gi, '<span class="highlight-fig">(glumeț)</span>');
 
-                            // Formatare tag-uri
                             let tagsHtml = '';
                             if (item.taguri) {
                                 const tags = item.taguri.split(',').map(t => t.trim());
@@ -325,29 +214,20 @@
                                 }).join('') + '</div>';
                             }
 
-                            return `
-                                <div class="result-card">
-                                    <h3>${item.termen}</h3>
-                                    <p>${def}</p>
-                                    ${tagsHtml}
-                                </div>
-                            `;
+                            return `<div class="result-card"><h3>${item.termen}</h3><p>${def}</p>${tagsHtml}</div>`;
                         }).join('');
                 }
             } catch (err) {
-                console.error('Eroare:', err);
-                resultsArea.innerHTML = '<div class="no-result"><p>A apărut o eroare. Încearcă din nou.</p></div>';
+                resultsArea.innerHTML = '<div class="no-result"><p>Eroare de conexiune.</p></div>';
             }
         }
 
-        // Expresii aleatorii
         const expresii = [
             '"A sta pe capul cuiva" - A deranja insistent pe cineva.',
-            '"A umbla cu găina" - A face pe prostul, a se preface că nu înțelege.',
-            '"A lua papagalul" - A fi prins copiind sau mințind.',
-            '"A face pe grozavul" - A pretinde că ești curajos.',
-            '"Bulă de săpun" - Ceva efemer, care se sparge ușor.',
-            '"A trage cu urechea" - A asculta pe ascuns ce vorbesc alții.'
+            '"A umbla cu găina" - A face pe prostul.',
+            '"A lua papagalul" - A fi prins copiind.',
+            '"Bulă de săpun" - Ceva efemer.',
+            '"A trage cu urechea" - A asculta pe ascuns.'
         ];
         document.getElementById('dailyExpression').textContent = expresii[Math.floor(Math.random() * expresii.length)];
     </script>
