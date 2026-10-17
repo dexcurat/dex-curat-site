@@ -6,62 +6,16 @@
     <title>DEX Curat | Dicționarul Limbii Române Vii</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            text-align: center;
-            line-height: 1.6;
-        }
-        .container {
-            max-width: 600px;
-            width: 100%;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            padding: 40px 20px;
-            box-sizing: border-box;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; color: #1e293b; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; text-align: center; line-height: 1.6; }
+        .container { max-width: 600px; width: 100%; background: white; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); padding: 40px 20px; box-sizing: border-box; }
         .key-icon { font-size: 3rem; margin-bottom: 10px; }
         h1 { color: #1e3a8a; font-size: 2.5rem; margin: 0 0 10px 0; }
         .subtitle { color: #d97706; font-weight: bold; font-size: 1.1rem; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 1px; }
         .search-box { position: relative; margin-bottom: 30px; }
-        input {
-            width: 100%;
-            padding: 15px 20px;
-            font-size: 1.1rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            box-sizing: border-box;
-            outline: none;
-            transition: border-color 0.3s;
-        }
+        input { width: 100%; padding: 15px 20px; font-size: 1.1rem; border: 2px solid #e2e8f0; border-radius: 12px; box-sizing: border-box; outline: none; transition: border-color 0.3s; }
         input:focus { border-color: #1e3a8a; }
-        .search-icon {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 24px;
-            height: 24px;
-            color: #94a3b8;
-        }
-        .result-card {
-            background: #eff6ff;
-            border-left: 4px solid #1e3a8a;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: left;
-            margin-bottom: 15px;
-            animation: fadeIn 0.3s ease-in;
-        }
+        .search-icon { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; color: #94a3b8; }
+        .result-card { background: #eff6ff; border-left: 4px solid #1e3a8a; padding: 20px; border-radius: 8px; text-align: left; margin-bottom: 15px; animation: fadeIn 0.3s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .result-card h3 { color: #1e3a8a; margin: 0 0 10px 0; font-size: 1.2rem; }
         .result-card p { color: #475569; margin: 0 0 15px 0; }
@@ -83,7 +37,7 @@
         <div class="subtitle">Dicționarul Limbii Române Vii & Muzeul Copilăriei</div>
         
         <div class="search-box">
-            <input type="text" id="searchInput" placeholder="Caută un cuvânt sau o expresie..." onkeyup="handleSearch(event)">
+            <input type="text" id="searchInput" placeholder="Caută un cuvânt (ex: cheie, a rezema)..." onkeyup="handleSearch(event)">
             <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
         </div>
 
@@ -104,21 +58,20 @@
     </div>
 
     <script>
-        // ⚠️ ÎNLOCUIEȘTE ACESTE VALORI CU CELE DIN SUPABASE (Settings -> API)
-        const SUPABASE_URL = 'https://xxxxxxxxxxxxxxxxxxxx.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+        // Cheile tale sunt deja configurate aici!
+        const SUPABASE_URL = 'https://jfvdiwsdygvmsonivhpx.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmdmRpd3NkeWd2bXNvbml2aHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxNzcxNDksImV4cCI6MjEwNzc1MzE0OX0.toJdOrqDayf46J1w0Bfzaf5KaxsNj8mQqksMscIhsFQ';
 
         // Inițializare client Supabase
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
         let searchTimeout;
 
         async function handleSearch(event) {
-            if (event.key === 'Enter') {
-                performSearch();
-            } else {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(performSearch, 500);
+            if (event.key === 'Enter') { 
+                performSearch(); 
+            } else { 
+                clearTimeout(searchTimeout); 
+                searchTimeout = setTimeout(performSearch, 500); 
             }
         }
 
@@ -137,11 +90,12 @@
             resultsArea.innerHTML = '';
 
             try {
+                // Căutare flexibilă: se potrivește cu termenul, definiția sau tag-urile
                 const { data, error } = await supabase
                     .from('cuvinte')
                     .select('termen, definitie, taguri')
                     .or(`termen.ilike.%${query}%,definitie.ilike.%${query}%,taguri.ilike.%${query}%`)
-                    .limit(15);
+                    .limit(15); // Limităm la 15 rezultate pentru viteză maximă
 
                 loadingMsg.style.display = 'none';
 
