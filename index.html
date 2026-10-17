@@ -27,7 +27,6 @@
         h1 { color: #1e3a8a; font-size: 2.2rem; margin-bottom: 5px; }
         .subtitle { color: #d97706; font-weight: 600; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px; }
         
-        /* Search Box */
         .search-container { position: relative; margin-bottom: 20px; }
         #searchInput { 
             width: 100%; 
@@ -40,7 +39,6 @@
         }
         #searchInput:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
         
-        /* Autocomplete */
         .autocomplete-list { 
             position: absolute; 
             top: 100%; 
@@ -66,7 +64,6 @@
         .autocomplete-item:hover { background: #eff6ff; color: #1e3a8a; font-weight: 600; }
         .autocomplete-item:last-child { border-bottom: none; }
 
-        /* Expresia Zilei */
         .expression-card { 
             background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); 
             border-left: 4px solid #d97706; 
@@ -77,7 +74,6 @@
         .expression-card h4 { color: #92400e; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 8px; }
         .expression-card p { color: #78350f; font-size: 1rem; font-style: italic; line-height: 1.5; }
 
-        /* Results */
         .results-info { 
             margin-bottom: 15px; 
             color: #64748b; 
@@ -136,7 +132,6 @@
             padding: 20px; 
         }
 
-        /* Footer */
         .footer { 
             margin-top: 30px; 
             text-align: center; 
@@ -164,7 +159,6 @@
         }
         .links a:hover { color: #667eea; }
 
-        /* Mobile Optimization */
         @media (max-width: 480px) {
             body { padding: 10px; }
             .container { padding: 20px 15px; border-radius: 12px; }
@@ -185,15 +179,13 @@
             <div class="subtitle">Dicționarul Limbii Române Vii & Muzeul Copilăriei</div>
         </div>
         
-        <!-- Expresia Zilei -->
         <div class="expression-card">
             <h4>💡 Expresia Zilei</h4>
-            <p id="dailyExpression">"A sta pe capul cuiva" - A deranja insistent pe cineva, a cere ceva cu insistență până când persoana respectivă cedează.</p>
+            <p id="dailyExpression">"A sta pe capul cuiva" - A deranja insistent pe cineva.</p>
         </div>
 
-        <!-- Căutare cu Autocomplete -->
         <div class="search-container">
-            <input type="text" id="searchInput" placeholder="Caută un cuvânt (ex: curățenie, apă, cheie)..." autocomplete="off">
+            <input type="text" id="searchInput" placeholder="Caută un cuvânt (ex: cravata, apă, cheie)..." autocomplete="off">
             <div id="autocompleteList" class="autocomplete-list"></div>
         </div>
 
@@ -213,7 +205,6 @@
     </div>
 
     <script>
-        // Configurare Supabase
         const SUPABASE_URL = 'https://jfvdiwsdygvmsonivhpx.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmdmRpd3NkeWd2bXNvbml2aHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxNzcxNDksImV4cCI6MjEwNzc1MzE0OX0.toJdOrqDayf46J1w0Bfzaf5KaxsNj8mQqksMscIhsFQ';
 
@@ -225,7 +216,6 @@
 
         let debounceTimer;
 
-        // Căutare automată la tastare (cu debounce)
         searchInput.addEventListener('input', (e) => {
             clearTimeout(debounceTimer);
             const query = e.target.value.trim();
@@ -236,25 +226,24 @@
                 return;
             }
 
-            // Debounce 400ms pentru performanță
             debounceTimer = setTimeout(() => {
                 fetchSuggestions(query);
                 performSearch(query);
             }, 400);
         });
 
-        // Autocomplete - sugestii
         async function fetchSuggestions(query) {
             try {
+                // Folosim funcția search_dex care ignoră diacriticele
                 const { data } = await supabaseClient
-                    .from('cuvinte')
-                    .select('termen')
-                    .ilike('termen', `%${query}%`)
-                    .limit(5);
+                    .rpc('search_dex', { query_text: query });
 
                 if (data && data.length > 0) {
-                    autocompleteList.innerHTML = data.map(item => 
-                        `<div class="autocomplete-item" onclick="selectSuggestion('${item.termen.replace(/'/g, "\\'")}')">${item.termen}</div>`
+                    // Luăm doar primele 5 termeni unici
+                    const uniqueTerms = [...new Set(data.map(item => item.termen))].slice(0, 5);
+                    
+                    autocompleteList.innerHTML = uniqueTerms.map(termen => 
+                        `<div class="autocomplete-item" onclick="selectSuggestion('${termen.replace(/'/g, "\\'")}')">${termen}</div>`
                     ).join('');
                     autocompleteList.style.display = 'block';
                 } else {
@@ -265,32 +254,27 @@
             }
         }
 
-        // Selectare sugestie
         function selectSuggestion(termen) {
             searchInput.value = termen;
             autocompleteList.style.display = 'none';
             performSearch(termen);
         }
 
-        // Închidere autocomplete la click în afară
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.search-container')) {
                 autocompleteList.style.display = 'none';
             }
         });
 
-        // Căutare principală
         async function performSearch(query) {
             if (!query || query.length < 2) return;
 
-            resultsArea.innerHTML = '<div class="loading"> Căutăm...</div>';
+            resultsArea.innerHTML = '<div class="loading">🔍 Căutăm...</div>';
 
             try {
+                // Folosim funcția search_dex care ignoră diacriticele
                 const { data, error } = await supabaseClient
-                    .from('cuvinte')
-                    .select('termen, definitie, taguri')
-                    .ilike('termen', `%${query}%`)
-                    .limit(15);
+                    .rpc('search_dex', { query_text: query });
 
                 if (error) throw error;
 
@@ -298,11 +282,11 @@
                     resultsArea.innerHTML = `
                         <div class="no-result">
                             <p style="margin:0; font-size: 1.1rem;"><strong>Nu am găsit "${query}"</strong></p>
-                            <p style="margin: 10px 0 0 0;">Încearcă să scrii cuvântul cu diacritice.</p>
+                            <p style="margin: 10px 0 0 0;">Încearcă un alt cuvânt.</p>
                         </div>
                     `;
                 } else {
-                    // Sortare inteligentă
+                    // Sortare inteligentă: Exact -> Începe cu -> Conține
                     const sortedData = data.sort((a, b) => {
                         const aTerm = a.termen.toLowerCase();
                         const bTerm = b.termen.toLowerCase();
@@ -315,9 +299,11 @@
                         return 0;
                     });
 
-                    resultsArea.innerHTML = `<div class="results-info">✅ Am găsit <strong>${sortedData.length}</strong> rezultate</div>` +
-                        sortedData.map(item => {
-                            // Evidențiere sensuri figurative/peiorative
+                    // Limităm la 15 rezultate
+                    const limitedData = sortedData.slice(0, 15);
+
+                    resultsArea.innerHTML = `<div class="results-info">✅ Am găsit <strong>${limitedData.length}</strong> rezultate</div>` +
+                        limitedData.map(item => {
                             let def = item.definitie;
                             def = def.replace(/\(fig\.\)/gi, '<span class="highlight-fig">(fig.)</span>');
                             def = def.replace(/\(peior\.\)/gi, '<span class="highlight-fig">(peior.)</span>');
@@ -338,7 +324,6 @@
             }
         }
 
-        // Expresii aleatoare (opțional - poți schimba manual)
         const expresii = [
             '"A sta pe capul cuiva" - A deranja insistent pe cineva.',
             '"A umbla cu găina" - A face pe prostul, a se preface că nu înțelege.',
@@ -347,7 +332,6 @@
             '"Bulă de săpun" - Ceva efemer, care se sparge ușor.'
         ];
 
-        // Schimbă expresia zilnică (la fiecare refresh)
         document.getElementById('dailyExpression').textContent = 
             expresii[Math.floor(Math.random() * expresii.length)];
     </script>
