@@ -49,4 +49,265 @@
         .game-btn { display: block; width: 100%; padding: 15px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 700; cursor: pointer; margin-top: 20px; transition: transform 0.2s; }
         .game-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
 
-        .footer { margin-top: 40px; text-align: center; font-size
+        .footer { margin-top: 40px; text-align: center; font-size: 0.85rem; color: #94a3b8; }
+        .btn { display: inline-block; padding: 12px 24px; background: #1e3a8a; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; margin-top: 15px; }
+        .links { margin-top: 15px; }
+        .links a { color: #64748b; text-decoration: none; margin: 0 10px; font-weight: 500; }
+        .links a:hover { color: #1e3a8a; }
+
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .container { padding: 20px 15px; }
+            h1 { font-size: 2rem; }
+            .museum-expression { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <div class="key-icon">🗝️</div>
+            <h1>DEX Curat</h1>
+            <div class="subtitle">Dicționarul Limbii Române Vii & Muzeul Expresiilor din Copilărie</div>
+        </div>
+        
+        <div class="museum-card">
+            <div class="museum-title">🏛️ Muzeul Expresiilor din Copilărie</div>
+            <div class="museum-expression" id="museumExp">Se încarcă o amintire...</div>
+            <div class="museum-meaning" id="museumMeaning"></div>
+        </div>
+
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Caută un cuvânt (ex: curatenie, mar, topogan)..." autocomplete="off">
+            <div id="autocompleteList" class="autocomplete-list"></div>
+        </div>
+
+        <div id="resultsArea">
+            <p style="color: #94a3b8; text-align: center;">Scrie pentru a căuta în cele 140.000+ de definiții...</p>
+        </div>
+
+        <button class="game-btn" onclick="startGame()">🎮 Joacă Detectivul de Greșeli!</button>
+
+        <div class="footer">
+            <p>Ai o expresie de adăugat în Muzeu sau o greșeală frecventă de semnalat?</p>
+            <a href="mailto:contact@dex-curat.online?subject=Propunere DEX Curat" class="btn">Scrie-ne</a>
+            <div class="links">
+                <a href="https://tiktok.com/@dexcurat" target="_blank">TikTok</a> • 
+                <a href="https://instagram.com/dexcurat" target="_blank">Instagram</a>
+            </div>
+        </div</div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://jfvdiwsdygvmsonivhpx.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmdmRpd3NkeWd2bXNvbml2aHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxNzcxNDksImV4cCI6MjEwNzc1MzE0OX0.toJdOrqDayf46J1w0Bfzaf5KaxsNj8mQqksMscIhsFQ';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const searchInput = document.getElementById('searchInput');
+        const autocompleteList = document.getElementById('autocompleteList');
+        const resultsArea = document.getElementById('resultsArea');
+        let debounceTimer;
+
+        // 1. Încărcarea Expresiei Zilei
+        async function loadMuseumExpression() {
+            try {
+                const { data } = await supabaseClient.from('expresii').select('expresie, semnificatie').limit(100);
+                if (data && data.length > 0) {
+                    const randomItem = data[Math.floor(Math.random() * data.length)];
+                    document.getElementById('museumExp').textContent = `"${randomItem.expresie}"`;
+                    document.getElementById('museumMeaning').textContent = randomItem.semnificatie;
+                }
+            } catch (err) { console.error('Eroare expresie:', err); }
+        }
+        loadMuseumExpression();
+
+        // 2. Căutare inteligentă
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            const query = e.target.value.trim();
+            if (query.length < 2) {
+                autocompleteList.style.display = 'none';
+                resultsArea.innerHTML = '<p style="color: #94a3b8; text-align: center;">Scrie pentru a căuta...</p>';
+                return;
+            }
+            debounceTimer = setTimeout(() => {
+                fetchSuggestions(query);
+                performSmartSearch(query);
+            }, 400);
+        });
+
+        async function fetchSuggestions(query) {
+            try {
+                const { data } = await supabaseClient.rpc('search_dex', { query_text: query });
+                if (data && data.length > 0) {
+                    const uniqueTerms = [...new Set(data.map(item => item.termen))].slice(0, 5);
+                    autocompleteList.innerHTML = uniqueTerms.map(termen => 
+                        `<div class="autocomplete-item" onclick="selectSuggestion('${termen.replace(/'/g, "\\'")}')">${termen}</div>`
+                    ).join('');
+                    autocompleteList.style.display = 'block';
+                } else {
+                    autocompleteList.style.display = 'none';
+                }
+            } catch (err) { console.error('Eroare autocomplete:', err); }
+        }
+
+        function selectSuggestion(termen) {
+            searchInput.value = termen;
+            autocompleteList.style.display = 'none';
+            performSmartSearch(termen);
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-container')) autocompleteList.style.display = 'none';
+        });
+
+        // 3. LOGICA MAGICĂ: Verifică mai întâi dacă e o greșeală frecventă
+        async function performSmartSearch(query) {
+            if (!query || query.length < 2) return;
+            resultsArea.innerHTML = '<div class="loading">🔍 Căutăm...</div>';
+
+            try {
+                // Pasul A: Verificăm dacă utilizatorul a căutat o variantă greșită
+                const { data: confuzii, error: errConfuzii } = await supabaseClient
+                    .from('confuzii_frecvente')
+                    .select('*')
+                    .ilike('varianta_gresita', query);
+
+                if (confuzii && confuzii.length > 0) {
+                    const confuzie = confuzii[0];
+                    const cuvantCorect = confuzie.varianta_corecta;
+                    
+                    // Pasul B: Afișăm Cardul de Corecție
+                    let html = `
+                        <div class="correction-card">
+                            <h3>⚠️ Atenție la ortografie!</h3>
+                            <p>Forma "<strong>${query}</strong>" este incorectă.</p>
+                            <p>✅ Corect este: <span class="correct-word">${cuvantCorect}</span></p>
+                            <p><em>💡 ${confuzie.explicatie_scurta}</em></p>
+                        </div>
+                    `;
+                    
+                    // Pasul C: Afișăm și definiția reală a cuvântului corect
+                    const { data: definitii } = await supabaseClient.rpc('search_dex', { query_text: cuvantCorect });
+                    if (definitii && definitii.length > 0) {
+                        const def = definitii[0];
+                        let cleanDef = def.definitie.replace(/\(fig\.\)/gi, '<span class="highlight-fig">(fig.)</span>');
+                        html += `
+                            <div class="results-info">📖 Definiția pentru <strong>${cuvantCorect}</strong>:</div>
+                            <div class="result-card">
+                                <h3>${def.termen}</h3>
+                                <p>${cleanDef}</p>
+                            </div>
+                        `;
+                    }
+                    resultsArea.innerHTML = html;
+                    return; // Oprim aici, am găsit și corectat greșeala!
+                }
+
+                // Pasul D: Dacă NU e o greșeală frecventă, căutăm normal în dicționar
+                const { data, error } = await supabaseClient.rpc('search_dex', { query_text: query });
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    resultsArea.innerHTML = `<div class="no-result"><p><strong>Nu am găsit "${query}"</strong></p><p>Încearcă o altă variantă sau scrie-ne să o adăugăm!</p></div>`;
+                } else {
+                    const sortedData = data.sort((a, b) => {
+                        const aTerm = a.termen.toLowerCase();
+                        const bTerm = b.termen.toLowerCase();
+                        const q = query.toLowerCase();
+                        if (aTerm === q) return -1;
+                        if (bTerm === q) return 1;
+                        if (aTerm.startsWith(q) && !bTerm.startsWith(q)) return -1;
+                        if (!aTerm.startsWith(q) && bTerm.startsWith(q)) return 1;
+                        return 0;
+                    }).slice(0, 15);
+
+                    resultsArea.innerHTML = `<div class="results-info">✅ Am găsit <strong>${sortedData.length}</strong> rezultate pentru "${query}"</div>` +
+                        sortedData.map(item => {
+                            let def = item.definitie.replace(/\(fig\.\)/gi, '<span class="highlight-fig">(fig.)</span>');
+                            let tagsHtml = '';
+                            if (item.taguri) {
+                                const tags = item.taguri.split(',').map(t => t.trim());
+                                tagsHtml = '<div class="tags-container">' + tags.map(tag => {
+                                    const isSeo = !['dex', 'romana', 'online', 'substantiv', 'verb', 'adjectiv', 'adverb', 'interjecție', 'prepoziție', 'conjuncție', 'pronume', 'numeral', 'articol', 'expresie'].includes(tag.toLowerCase());
+                                    return `<span class="tag ${isSeo ? 'seo' : ''}">#${tag}</span>`;
+                                }).join('') + '</div>';
+                            }
+                            return `<div class="result-card"><h3>${item.termen}</h3><p>${def}</p>${tagsHtml}</div>`;
+                        }).join('');
+                }
+            } catch (err) {
+                resultsArea.innerHTML = '<div class="no-result"><p>Eroare de conexiune. Încearcă din nou.</p></div>';
+            }
+        }
+
+        // 4. Jocul "Detectivul de Greșeli"
+        async function startGame() {
+            resultsArea.innerHTML = '<div class="loading">🎮 Se pregătește jocul...</div>';
+            try {
+                // Luăm 3 confuzii aleatorii
+                const { data } = await supabaseClient.from('confuzii_frecvente').select('varianta_corecta, varianta_gresita, explicatie_scurta').limit(50);
+                if (!data || data.length < 3) {
+                    resultsArea.innerHTML = '<div class="no-result"><p>Ne trebuie mai multe confuzii în bază de date pentru a începe jocul!</p></div>';
+                    return;
+                }
+                
+                // Amestecăm și luăm primele 3
+                const shuffled = data.sort(() => 0.5 - Math.random()).slice(0, 3);
+                
+                let gameHtml = '<div class="results-info">🎯 Alege varianta CORECTĂ pentru fiecare:</div>';
+                
+                shuffled.forEach((item, index) => {
+                    // Amestecăm opțiunile
+                    const options = [item.varianta_corecta, item.varianta_gresita].sort(() => 0.5 - Math.random());
+                    gameHtml += `
+                        <div class="result-card" id="q-${index}">
+                            <h3>Întrebarea ${index + 1}</h3>
+                            <p>Cum se scrie corect?</p>
+                            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                                <button onclick="checkAnswer(${index}, '${options[0]}', '${item.varianta_corecta}', '${item.explicatie_scurta}')" style="flex:1; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; background: white; cursor: pointer; font-weight: 600;">${options[0]}</button>
+                                <button onclick="checkAnswer(${index}, '${options[1]}', '${item.varianta_corecta}', '${item.explicatie_scurta}')" style="flex:1; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; background: white; cursor: pointer; font-weight: 600;">${options[1]}</button>
+                            </div>
+                            <div id="feedback-${index}" style="margin-top: 15px; display: none;"></div>
+                        </div>
+                    `;
+                });
+                
+                gameHtml += '<button class="game-btn" onclick="performSmartSearch(searchInput.value || \'a fi\')" style="background: #1e3a8a; margin-top: 20px;">🔙 Înapoi la Căutare</button>';
+                resultsArea.innerHTML = gameHtml;
+            } catch (err) {
+                resultsArea.innerHTML = '<div class="no-result"><p>Eroare la încărcarea jocului.</p></div>';
+            }
+        }
+
+        function checkAnswer(qIndex, selected, correct, explanation) {
+            const feedbackEl = document.getElementById(`feedback-${qIndex}`);
+            const cardEl = document.getElementById(`q-${qIndex}`);
+            feedbackEl.style.display = 'block';
+            
+            if (selected === correct) {
+                feedbackEl.innerHTML = `<p style="color: #15803d; font-weight: 700;">✅ Corect! ${explanation}</p>`;
+                cardEl.style.borderLeft = '5px solid #15803d';
+            } else {
+                feedbackEl.innerHTML = `<p style="color: #b91c1c; font-weight: 700;">❌ Greșit! ${explanation}</p>`;
+                cardEl.style.borderLeft = '5px solid #b91c1c';
+            }
+            
+            // Dezactivăm butoanele după răspuns
+            const buttons = cardEl.querySelectorAll('button');
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                btn.style.cursor = 'default';
+                if (btn.textContent === correct) {
+                    btn.style.background = '#dcfce7';
+                    btn.style.borderColor = '#15803d';
+                } else if (btn.textContent === selected && selected !== correct) {
+                    btn.style.background = '#fef2f2';
+                    btn.style.borderColor = '#b91c1c';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
