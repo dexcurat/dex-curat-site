@@ -123,10 +123,11 @@
             <div class="subtitle">Dicționarul Limbii Române Vii & Muzeul Expresiilor din Copilărie</div>
         </div>
         
-        <div class="museum-card">
-            <div class="museum-title">️ Muzeul Expresiilor din Copilărie</div>
+        <div class="museum-card" onclick="loadMuseumExpression()" style="cursor: pointer;" title="Apasă pentru o nouă amintire!">
+            <div class="museum-title">🏛️ Muzeul Expresiilor din Copilărie</div>
             <div class="museum-expression" id="museumExp">Se încarcă o amintire...</div>
             <div class="museum-meaning" id="museumMeaning"></div>
+            <div style="font-size: 0.8rem; color: #d97706; margin-top: 10px;">(apasă aici pentru alta)</div>
         </div>
 
         <div class="search-container">
@@ -135,7 +136,7 @@
         </div>
 
         <div id="resultsArea">
-            <p style="color: #94a3b8; text-align: center;">Scrie pentru a căuta în cele 140.000+ de definiții...</p>
+            <p style="color: #94a3b8; text-align: center;">Scrie pentru a căuta în cele 180.000+ de definiții...</p>
         </div>
 
         <button class="game-btn" onclick="startGame()">🎮 Joacă Detectivul de Greșeli!</button>
@@ -183,7 +184,6 @@
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            // Arată banner-ul după 3 secunde
             setTimeout(() => {
                 installBanner.classList.add('show');
             }, 3000);
@@ -204,14 +204,17 @@
             installBanner.classList.remove('show');
         });
 
-        // ===== 1. Încărcarea Expresiei Zilei =====
+        // ===== 1. Încărcarea Expresiei Zilei (MUZEU) =====
         async function loadMuseumExpression() {
             try {
-                const { data } = await supabaseClient.from('expresii').select('expresie, semnificatie').limit(100);
+                // Modificat aici: numele corect al tabelului (fără limită mică, ca să extragă din toate)
+                const { data } = await supabaseClient.from('expresii_copilarie').select('expresie, semnificatie');
                 if (data && data.length > 0) {
                     const randomItem = data[Math.floor(Math.random() * data.length)];
                     document.getElementById('museumExp').textContent = `"${randomItem.expresie}"`;
                     document.getElementById('museumMeaning').textContent = randomItem.semnificatie;
+                } else {
+                    document.getElementById('museumExp').textContent = "Muzeul este momentan închis!";
                 }
             } catch (err) { console.error('Eroare expresie:', err); }
         }
@@ -234,7 +237,8 @@
 
         async function fetchSuggestions(query) {
             try {
-                const { data } = await supabaseClient.rpc('search_dex', { query_text: query });
+                // Modificat aici: parametrul 'keyword' în loc de 'query_text'
+                const { data } = await supabaseClient.rpc('search_dex', { keyword: query });
                 if (data && data.length > 0) {
                     const uniqueTerms = [...new Set(data.map(item => item.termen))].slice(0, 5);
                     autocompleteList.innerHTML = uniqueTerms.map(termen => 
@@ -282,7 +286,8 @@
                         </div>
                     `;
                     
-                    const { data: definitii } = await supabaseClient.rpc('search_dex', { query_text: cuvantCorect });
+                    // Modificat aici: parametrul 'keyword'
+                    const { data: definitii } = await supabaseClient.rpc('search_dex', { keyword: cuvantCorect });
                     if (definitii && definitii.length > 0) {
                         const def = definitii[0];
                         let cleanDef = def.definitie.replace(/\(fig\.\)/gi, '<span class="highlight-fig">(fig.)</span>');
@@ -299,7 +304,8 @@
                 }
 
                 // Pasul D: Căutare normală în dicționar
-                const { data, error } = await supabaseClient.rpc('search_dex', { query_text: query });
+                // Modificat aici: parametrul 'keyword'
+                const { data, error } = await supabaseClient.rpc('search_dex', { keyword: query });
                 if (error) throw error;
 
                 if (!data || data.length === 0) {
@@ -337,7 +343,7 @@
 
         // ===== 4. Jocul "Detectivul de Greșeli" =====
         async function startGame() {
-            resultsArea.innerHTML = '<div class="loading"> Se pregătește jocul...</div>';
+            resultsArea.innerHTML = '<div class="loading">🎮 Se pregătește jocul...</div>';
             try {
                 const { data } = await supabaseClient.from('confuzii_frecvente').select('varianta_corecta, varianta_gresita, explicatie_scurta').limit(50);
                 if (!data || data.length < 3) {
@@ -347,7 +353,7 @@
                 
                 const shuffled = data.sort(() => 0.5 - Math.random()).slice(0, 3);
                 
-                let gameHtml = '<div class="results-info"> Alege varianta CORECTĂ pentru fiecare:</div>';
+                let gameHtml = '<div class="results-info">🎯 Alege varianta CORECTĂ pentru fiecare:</div>';
                 
                 shuffled.forEach((item, index) => {
                     const options = [item.varianta_corecta, item.varianta_gresita].sort(() => 0.5 - Math.random());
