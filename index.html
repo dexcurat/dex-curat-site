@@ -9,9 +9,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="DEX Curat">
     <meta name="mobile-web-app-capable" content="yes">
+
+    <!-- Configurare Favicon & PWA Icons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="/icon-192.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+
     <title>DEX Curat | Dicționarul Limbii Române Vii</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -207,7 +212,6 @@
         // ===== 1. Încărcarea Expresiei Zilei (MUZEU) =====
         async function loadMuseumExpression() {
             try {
-                // Modificat aici: numele corect al tabelului (fără limită mică, ca să extragă din toate)
                 const { data } = await supabaseClient.from('expresii_copilarie').select('expresie, semnificatie');
                 if (data && data.length > 0) {
                     const randomItem = data[Math.floor(Math.random() * data.length)];
@@ -237,7 +241,6 @@
 
         async function fetchSuggestions(query) {
             try {
-                // Modificat aici: parametrul 'keyword' în loc de 'query_text'
                 const { data } = await supabaseClient.rpc('search_dex', { keyword: query });
                 if (data && data.length > 0) {
                     const uniqueTerms = [...new Set(data.map(item => item.termen))].slice(0, 5);
@@ -267,7 +270,6 @@
             resultsArea.innerHTML = '<div class="loading">🔍 Căutăm...</div>';
 
             try {
-                // Pasul A: Verificăm dacă utilizatorul a căutat o variantă greșită
                 const { data: confuzii, error: errConfuzii } = await supabaseClient
                     .from('confuzii_frecvente')
                     .select('*')
@@ -286,7 +288,6 @@
                         </div>
                     `;
                     
-                    // Modificat aici: parametrul 'keyword'
                     const { data: definitii } = await supabaseClient.rpc('search_dex', { keyword: cuvantCorect });
                     if (definitii && definitii.length > 0) {
                         const def = definitii[0];
@@ -303,8 +304,6 @@
                     return;
                 }
 
-                // Pasul D: Căutare normală în dicționar
-                // Modificat aici: parametrul 'keyword'
                 const { data, error } = await supabaseClient.rpc('search_dex', { keyword: query });
                 if (error) throw error;
 
