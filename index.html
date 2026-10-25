@@ -225,6 +225,8 @@
         loadMuseumExpression();
 
         // ===== 2. Căutare inteligentă =====
+        
+        // Logica pentru când utilizatorul scrie (sugestii Google-style)
         searchInput.addEventListener('input', (e) => {
             clearTimeout(debounceTimer);
             const query = e.target.value.trim();
@@ -237,6 +239,24 @@
                 fetchSuggestions(query);
                 performSmartSearch(query);
             }, 400);
+        });
+
+        // Logica NOUĂ pentru tasta ENTER
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Oprește comportamentele implicite ale browserului
+                const query = searchInput.value.trim();
+                
+                // Ascunde sugestiile
+                autocompleteList.style.display = 'none';
+                
+                // Ascunde tastatura pe mobil pentru a face loc rezultatelor
+                searchInput.blur();
+                
+                if (query.length >= 2) {
+                    performSmartSearch(query);
+                }
+            }
         });
 
         async function fetchSuggestions(query) {
@@ -264,7 +284,7 @@
             if (!e.target.closest('.search-container')) autocompleteList.style.display = 'none';
         });
 
-        // ===== 3. LOGICA MAGICĂ: Verifică confuziile frecvente =====
+        // ===== 3. LOGICA MAGICĂ: Verifică confuziile frecvente și caută în baza de date =====
         async function performSmartSearch(query) {
             if (!query || query.length < 2) return;
             resultsArea.innerHTML = '<div class="loading">🔍 Căutăm...</div>';
